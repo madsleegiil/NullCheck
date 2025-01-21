@@ -3,7 +3,7 @@ package com.madslee.nullcheck
 import org.slf4j.LoggerFactory
 import javax.sql.DataSource
 
-class NullCheck private constructor(dataSource: DataSource) {
+class NullCheck private constructor(private val dataSource: DataSource) {
     companion object {
         private val logger = LoggerFactory.getLogger(NullCheck::class.java)
 
@@ -19,13 +19,34 @@ class NullCheck private constructor(dataSource: DataSource) {
             }
         }
 
-        fun checkNulls() {
+        fun checkNulls(any: Any) {
             check(nullCheck != null) { "Can't use NullCheck before having set it up" }
-            nullCheck!!.checkNulls()
+            nullCheck!!.checkNulls(any)
         }
     }
 
-    private fun checkNulls() {
-
+    private fun checkNulls(any: Any) {
+        val className = any::class.java.simpleName
+        val fields = any::class.java.declaredFields
+        fields.forEach { field ->
+            val originalAccesibility = field.isAccessible
+            field.isAccessible = true
+            val isNull = field.get(any) == null
+            field.isAccessible = originalAccesibility
+            storeResult(NewNullCheck(className, field.name, isNull))
+        }
     }
+
+    private fun storeResult(newNullCheck: NewNullCheck) {
+        dataSource.connection.use { connection ->
+            val sql = ""
+        }
+        logger.info("To be stored!")
+    }
+
+    data class NewNullCheck(
+        val className: String,
+        val fieldName: String,
+        val isNull: Boolean
+    )
 }

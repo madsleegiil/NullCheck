@@ -25,7 +25,7 @@ class NullCheckTest {
     }
 
     @Test
-    fun `Instantiating "Person" with null for age shall be counted in the database`() {
+    fun `Instantiating Person-object with null for age shall be counted in the database`() {
         Person(null)
         val nullCheckRows = getNullCheckRows(dataSource)
         nullCheckRows shouldHaveSize 1

@@ -1,5 +1,7 @@
 package com.madslee.nullcheck
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres
@@ -64,5 +66,21 @@ class NullCheckTest {
         classFields shouldHaveSize 1
         classFields[0].fieldName shouldBe "age"
         classFields[0].numberOfTimesNull shouldBe 0
+    }
+
+    @Test
+    fun `Instantiating an object through Jackson Kotlin Module shall trigger the null check`() {
+        val personJson = """
+            {
+                "age": 1
+            }
+        """.trimIndent()
+
+        jacksonObjectMapper().readValue<Person>(personJson)
+
+        val nullCheckClass = getNullCheckClasses(dataSource)
+        nullCheckClass shouldHaveSize 1
+        nullCheckClass[0].className shouldBe "Person"
+        nullCheckClass[0].numberOfInstantiations shouldBe 1
     }
 }

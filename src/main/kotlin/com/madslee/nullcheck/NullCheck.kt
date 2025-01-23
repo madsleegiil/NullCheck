@@ -3,7 +3,9 @@ package com.madslee.nullcheck
 import org.slf4j.LoggerFactory
 import javax.sql.DataSource
 
-class NullCheck private constructor(private val dataSource: DataSource) {
+class NullCheck private constructor(dataSource: DataSource) {
+    private val repository = Repository(dataSource)
+
     companion object {
         private val logger = LoggerFactory.getLogger(NullCheck::class.java)
 
@@ -26,60 +28,18 @@ class NullCheck private constructor(private val dataSource: DataSource) {
     }
 
     private fun checkNulls(any: Any) {
-        val className = any::class.java.simpleName
-        val fields = any::class.java.declaredFields
-        val fieldsNullCheckResult = fields.map { field ->
-            val originalAccesibility = field.canAccess(any)
-            field.isAccessible = true
-            val isNull = field.get(any) == null
-            field.isAccessible = originalAccesibility
-            NullCheckField(
-                field.name,
-                isNull = isNull
-            )
-        }
-        val nullCheckClass = NullCheckClass(className, fieldsNullCheckResult)
-        storeResult(nullCheckClass)
+        val classInspector = ClassInspector(any)
+        val classData = classInspector.inspectClass()
+        repository.storeResult(classData)
     }
 
-    private fun storeResult(nullCheckClass: NullCheckClass) {
-        dataSource.connection.use { connection ->
-            connection.autoCommit = false
-
-            val classInstantiationStatement = connection.prepareStatement("""
-                INSERT INTO nullcheck_class(class_name, number_of_instantiations)
-                VALUES (?, 1)
-                ON CONFLICT (class_name) DO UPDATE 
-                    SET number_of_instantiations = nullcheck_class.number_of_instantiations + 1 
-            """.trimIndent())
-            classInstantiationStatement.setString(1, nullCheckClass.className)
-            classInstantiationStatement.execute()
-
-            nullCheckClass.fields.forEach { field ->
-                val fieldStatement = connection.prepareStatement("""
-                    INSERT INTO nullcheck_field(class_name, field_name, number_of_times_null)
-                    VALUES (?, ?, ?)
-                    ON CONFLICT (class_name, field_name) DO UPDATE 
-                        SET number_of_times_null = nullcheck_field.number_of_times_null + ?
-                """.trimIndent())
-                fieldStatement.setString(1, nullCheckClass.className)
-                fieldStatement.setString(2, field.fieldName)
-                val nullIntValue = if (field.isNull) 1 else 0
-                fieldStatement.setInt(3, nullIntValue)
-                fieldStatement.setInt(4, nullIntValue)
-                fieldStatement.execute()
-            }
-            connection.commit()
-        }
-    }
-
-    private data class NullCheckClass(
+    internal data class ClassData(
         val className: String,
-        val fields: List<NullCheckField>
+        val fields: List<ClassField>
     )
 
-    private data class NullCheckField(
-        val fieldName: String,
+    internal data class ClassField(
+        val name: String,
         val isNull: Boolean
     )
 }

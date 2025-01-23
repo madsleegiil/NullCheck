@@ -69,6 +69,24 @@ class NullCheckTest {
     }
 
     @Test
+    fun `Count correctly when there are multiple instantiations`() {
+        Person(1)
+        Person(null)
+        Person(50)
+        Person(75)
+        Person(null)
+
+        val personClass = getNullCheckClasses(dataSource).find { it.className == "Person" }!!
+        personClass.numberOfInstantiations shouldBe 5
+
+        val ageField = personClass.nullCheckFields.find { it.fieldName == "age" }!!
+        ageField.numberOfTimesNull shouldBe 2
+    }
+
+    @Test
+    fun `Count correctly also when multiple threads`() {}
+
+    @Test
     fun `Instantiating an object through Jackson Kotlin Module shall trigger the null check`() {
         val personJson = """
             {

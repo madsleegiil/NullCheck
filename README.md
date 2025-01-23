@@ -33,6 +33,6 @@ NullCheck.setUp(dataSource)
 After setting it up, trigger the null check in an init block within the classes you want to monitor:
 ```
 init { 
-    checkNulls(this) 
+    checkNulls() 
 }
 ```

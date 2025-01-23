@@ -21,9 +21,9 @@ class NullCheck private constructor(dataSource: DataSource) {
             }
         }
 
-        fun checkNulls(any: Any) {
+        fun Any.checkNulls() {
             check(nullCheck != null) { "Can't use NullCheck before having set it up" }
-            nullCheck!!.checkNulls(any)
+            nullCheck!!.checkNulls(this)
         }
     }
 

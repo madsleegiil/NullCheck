@@ -25,7 +25,7 @@ create table nullcheck_field(
   FOREIGN KEY (class_name) references nullcheck_class(class_name)
 );
 ```
-Set up the `NullCheck` class as follows:
+Set up the `NullCheck` class at application startup as follows:
 
 ```
 NullCheck.setUp(dataSource)

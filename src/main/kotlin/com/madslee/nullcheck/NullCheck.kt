@@ -29,7 +29,7 @@ class NullCheck private constructor(private val dataSource: DataSource) {
         val className = any::class.java.simpleName
         val fields = any::class.java.declaredFields
         val fieldsNullCheckResult = fields.map { field ->
-            val originalAccesibility = field.isAccessible
+            val originalAccesibility = field.canAccess(any)
             field.isAccessible = true
             val isNull = field.get(any) == null
             field.isAccessible = originalAccesibility

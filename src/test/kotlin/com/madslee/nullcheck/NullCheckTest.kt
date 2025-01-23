@@ -27,11 +27,15 @@ class NullCheckTest {
     @Test
     fun `Instantiating Person-object with null for age shall be counted in the database`() {
         Person(null)
-        val nullCheckRows = getNullCheckRows(dataSource)
-        nullCheckRows shouldHaveSize 1
-        nullCheckRows[0].className shouldBe "Person"
-        nullCheckRows[0].fieldName shouldBe "age"
-        nullCheckRows[0].numberOfTimesNull shouldBe 1
-        nullCheckRows[0].numberOfTimesNotNull shouldBe 0
+
+        val nullCheckClass = getNullCheckClasses(dataSource)
+        nullCheckClass shouldHaveSize 1
+        nullCheckClass[0].className shouldBe "Person"
+        nullCheckClass[0].numberOfInstantiations shouldBe 1
+
+        val classFields = nullCheckClass.first().nullCheckFields
+        classFields shouldHaveSize 1
+        classFields[0].fieldName shouldBe "age"
+        classFields[0].numberOfTimesNull shouldBe 1
     }
 }

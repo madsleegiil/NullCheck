@@ -1,31 +1,67 @@
 package com.madslee.nullcheck
 
+import java.sql.Connection
 import java.sql.ResultSet
 import javax.sql.DataSource
 
-data class NullCheckRow(
+data class NullCheckClass(
     val className: String,
-    val fieldName: String,
-    val numberOfTimesNull: Int,
-    val numberOfTimesNotNull: Int,
+    val numberOfInstantiations: Long,
+    val nullCheckFields: List<NullCheckField>
 )
 
-fun getNullCheckRows(dataSource: DataSource): List<NullCheckRow> {
+data class NullCheckField(
+    val fieldName: String,
+    val numberOfTimesNull: Long,
+)
+
+fun getNullCheckClasses(dataSource: DataSource): List<NullCheckClass> {
     return dataSource.connection.use { connection ->
-        connection.prepareStatement("SELECT * FROM nullcheck").use { statement ->
-            statement.executeQuery().use { resultSet -> resultSet.getNullCheckRows() }
+        val nullCheckClassStatement = connection.prepareStatement("select * from nullcheck_class")
+        val nullCheckClassResultSet = nullCheckClassStatement.executeQuery()
+
+        generateSequence {
+            if (nullCheckClassResultSet.next()) {
+                val className = nullCheckClassResultSet.getString("class_name")
+                val numberOfInstantiations = nullCheckClassResultSet.getLong("number_of_instantiations")
+                val fields = connection.getFieldsForClass(className)
+
+                NullCheckClass(
+                    className = nullCheckClassResultSet.getString("class_name"),
+                    numberOfInstantiations = numberOfInstantiations,
+                    nullCheckFields = fields
+                )
+            } else {
+                null
+            }
+        }.toList().also {
+            nullCheckClassStatement.close()
+            nullCheckClassResultSet.close()
         }
     }
 }
 
-private fun ResultSet.getNullCheckRows(): List<NullCheckRow> {
+private fun Connection.getFieldsForClass(className: String): List<NullCheckField> {
+    val statement = this.prepareStatement(
+        """
+                    select * from nullcheck_field
+                    where class_name = ?
+                """.trimIndent()
+    )
+    statement.setString(1, className)
+    val resultSet = statement.executeQuery()
+    return resultSet.getNullCheckFieldRows().also {
+        statement.close()
+        resultSet.close()
+    }
+}
+
+private fun ResultSet.getNullCheckFieldRows(): List<NullCheckField> {
     return generateSequence {
         if (this.next()) {
-            NullCheckRow(
-                className = this.getString("class_name"),
+            NullCheckField(
                 fieldName = this.getString("field_name"),
-                numberOfTimesNull = this.getInt("numberOf_times_null"),
-                numberOfTimesNotNull = this.getInt("numberOf_timesNotNull"),
+                numberOfTimesNull = this.getLong("number_of_times_null"),
             )
         } else {
             null
